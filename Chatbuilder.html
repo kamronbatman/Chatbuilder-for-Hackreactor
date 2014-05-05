@@ -4,6 +4,8 @@
         <meta charset="utf-8">
         <title>Chatbuilder</title>
         <script src="http://chatbuilder.hackreactor.com/ChatBuilder.js"></script>
+        <!-- For task 10, we are using this to parse URLs.  Less over analyzing and more coding please! -->
+        <script src="https://cdn.rawgit.com/allmarkedup/purl/master/purl.js"></script>
     </head>
     <body>
 
@@ -39,41 +41,53 @@
             delete Chat.display;
 
             Chat.display = function(msg) {
-                //Optional index can be specified.  This helps prevent "flashing" while messages are displayed.
+              $('.messages').append( $('<li>').append(msg.replace('&lt;','<').replace('&gt;','>')) );
+            }
 
-                var index = -1;
-                if (arguments.length >= 2)
-                {
-                    index = arguments[1];
-                }
+            //Task 9 is very difficult to do since we don't know the parse link.
+            //Of course I used Chrome's Dev Tools + Prettify to find the right place in Chatbuilder's core.  We easily can find a reference to task 10!
+            //Task 10 shows the proper API link: https://api.parse.com/1/classes/chats
+            delete Chat.fetch;
 
-                msg = msg.replace('&lt;','<').replace('&gt;','>');
-
-                if (index == -1 || index >= $('.messages li').length)
-                {
-                    $('.messages').append( $('<li>').append(msg) );
-                }
-                else
-                {
-                    $('.messages li').eq(index).text(msg);
-                }
-            };
-
+            Chat.fetch = function(callBack) {
+              $.get(
+                "https://api.parse.com/1/classes/chats?order=createdAt",
+                function(data) {
+                  //Todo
+                  //Find a nicer way of doing this, maybe Underscore.js has something?
+                  returnedArray = [];
+                  $.each(data.results, function(key,value) { returnedArray.push(value.text); });
+                  callBack(returnedArray);
+              });
+            }
 
             var fetchCallback = function(array)
             {
-                //We have an array of messages returned from fetch()
-                for (var i = 0; i < array.length; i++)
-                {
-                    var msg = array[i];
-
-                    Chat.display(msg,i);
-                }
-
+                //Todo
+                //Find a better way of doing this.  This causes flashing in some browsers in Windows.  Sigh.
+                $('.messages').empty();
+                $.each(array,function(index, value){ Chat.display(value); });
                 setTimeout( function(){ Chat.fetch( fetchCallback ); }, 3000 );
             }
 
+            //Task 10 asks us to replace Chat.send, which is fairly straight forward.
+            //Except its not.  During testing we find out that the text displayed is raw.  We are missing our username!
+            delete Chat.send;
 
+            Chat.send = function(msg) {
+              //Todo
+              //Color MY text using CSS.
+              var username = $.url(location.href).param('username');
+              //Todo
+              //Sanitize the message!
+              var postmsg = { 'text': username + ": " + msg };
+
+              //Todo
+              //Add response / error handling!
+              $.post( "https://api.parse.com/1/classes/chats", JSON.stringify(postmsg) );
+            }
+
+            //Start fetching data!
             Chat.fetch( fetchCallback );
         </script>
 
